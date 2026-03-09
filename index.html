@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Banker's Algorithm Simulator</title>
+    <meta name="description"
+        content="An interactive, visual Banker's Algorithm Simulator with step-by-step execution, glassmorphism UI, and real-time Need Matrix computation." />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <!-- ═══════════════════════════════════════ MESH BACKGROUND ══ -->
+    <div class="mesh-bg" aria-hidden="true"></div>
+
+    <!-- ═══════════════════════════════════════ TOAST CONTAINER ══ -->
+    <div id="toast-container" aria-live="assertive"></div>
+
+    <!-- ═══════════════════════════════════════ APP WRAPPER ════════ -->
+    <div class="app-wrapper" id="capture-area">
+
+        <!-- ──────────────────── HEADER ──────────────────── -->
+        <header class="glass-card header-card">
+            <div class="header-brand">
+                <span class="brand-icon"><i class="fas fa-microchip"></i></span>
+                <div>
+                    <h1 class="brand-title">Banker's Algorithm</h1>
+                    <p class="brand-sub">Deadlock Avoidance Simulator</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <!-- Enlarged theme toggle -->
+                <button id="btn-dark-toggle" class="btn-theme-toggle" title="Toggle dark / light mode"
+                    aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- ──────────────────── PDF DOWNLOAD STRIP ─────────── -->
+        <!-- Placed right below the header so it's always visible -->
+        <div class="pdf-strip" id="pdf-strip">
+            <div class="pdf-strip-text">
+                <i class="fas fa-graduation-cap"></i>
+                Developed for optimal learning of <strong>Resource Allocation</strong> and
+                <strong>Deadlock Avoidance</strong>.
+            </div>
+            <button id="btn-export-pdf" class="btn btn-pdf" aria-label="Download full PDF report">
+                <i class="fas fa-file-arrow-down"></i> Download PDF Report
+            </button>
+        </div>
+
+        <!-- Hidden print-safe capture zone — populated by exportPDF() -->
+        <div id="pdf-capture" class="pdf-capture" aria-hidden="true"></div>
+
+        <!-- ──────────────────── STEP 1 — SYSTEM PARAMS ─────── -->
+        <section class="glass-card" id="section-params">
+            <div class="section-header">
+                <span class="section-number">01</span>
+                <div>
+                    <h2 class="section-title">System Parameters</h2>
+                    <p class="section-desc">Define the number of processes (n) and resource types (m).</p>
+                </div>
+            </div>
+
+            <div class="params-row">
+                <div class="field-group">
+                    <label class="field-label" for="num-processes">Processes (n)</label>
+                    <input id="num-processes" class="field-input" type="number" min="1" max="15" value="5"
+                        aria-label="Number of processes" />
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="num-resources">Resource Types (m)</label>
+                    <input id="num-resources" class="field-input" type="number" min="1" max="10" value="3"
+                        aria-label="Number of resource types" />
+                </div>
+                <div class="field-group" style="justify-content:flex-end">
+                    <button id="btn-generate" class="btn btn-primary" aria-label="Generate matrices">
+                        <i class="fas fa-table-columns"></i> Generate Matrices
+                    </button>
+                    <button id="btn-reset" class="btn btn-ghost" aria-label="Reset everything">
+                        <i class="fas fa-rotate-left"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ──────────────────── STEP 2 — MATRICES ──────────── -->
+        <section class="glass-card hidden fade-in" id="section-matrices">
+            <div class="section-header">
+                <span class="section-number">02</span>
+                <div>
+                    <h2 class="section-title">Resource Matrices</h2>
+                    <p class="section-desc">Fill Allocation and Max. Need = Max − Allocation updates live.</p>
+                </div>
+                <button id="btn-random" class="btn btn-accent btn-sm" aria-label="Fill random valid data">
+                    <i class="fas fa-dice"></i> Randomize
+                </button>
+            </div>
+
+            <div class="matrices-grid" id="matrices-grid">
+                <!-- Allocation -->
+                <div class="matrix-block" id="block-allocation">
+                    <h3 class="matrix-label alloc-label"><i class="fas fa-database"></i> Allocation</h3>
+                    <div class="table-scroll" id="cont-allocation"></div>
+                </div>
+                <!-- Max -->
+                <div class="matrix-block" id="block-max">
+                    <h3 class="matrix-label max-label"><i class="fas fa-maximize"></i> Max Demand</h3>
+                    <div class="table-scroll" id="cont-max"></div>
+                </div>
+                <!-- Need (auto) -->
+                <div class="matrix-block" id="block-need">
+                    <h3 class="matrix-label need-label"><i class="fas fa-calculator"></i> Need <span
+                            class="badge-auto">AUTO</span></h3>
+                    <div class="table-scroll" id="cont-need"></div>
+                </div>
+                <!-- Available -->
+                <div class="matrix-block" id="block-available">
+                    <h3 class="matrix-label avail-label"><i class="fas fa-server"></i> Available</h3>
+                    <div class="table-scroll" id="cont-available"></div>
+                </div>
+            </div>
+
+            <!-- Safety & Step Actions -->
+            <div class="action-row">
+                <button id="btn-safety" class="btn btn-success" aria-label="Run safety algorithm">
+                    <i class="fas fa-shield-halved"></i> Run Safety Check
+                </button>
+                <button id="btn-step-start" class="btn btn-warning" aria-label="Start step-by-step visualization">
+                    <i class="fas fa-play"></i> Step-by-Step
+                </button>
+            </div>
+
+            <!-- Step-by-Step Player -->
+            <div class="step-player hidden" id="step-player">
+                <div class="step-player-header">
+                    <span><i class="fas fa-film"></i> Algorithm Step Player</span>
+                    <button id="btn-step-close" class="icon-action sm" aria-label="Close step player"><i
+                            class="fas fa-xmark"></i></button>
+                </div>
+                <div class="step-stats">
+                    <div class="stat-chip">
+                        <span class="stat-label">Work Vector</span>
+                        <span class="stat-value" id="step-work">—</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-label">Safe Sequence</span>
+                        <span class="stat-value success-text" id="step-seq">—</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-label">Status</span>
+                        <span class="stat-value warning-text" id="step-status">Ready</span>
+                    </div>
+                </div>
+                <div style="text-align:right; margin-top:12px;">
+                    <button id="btn-step-next" class="btn btn-primary btn-sm" aria-label="Evaluate next process">
+                        <i class="fas fa-forward-step"></i> Next Process
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ──────────────────── STEP 3 — RESOURCE REQUEST ───── -->
+        <section class="glass-card hidden fade-in" id="section-request">
+            <div class="section-header">
+                <span class="section-number">03</span>
+                <div>
+                    <h2 class="section-title">Resource Request</h2>
+                    <p class="section-desc">Simulate a resource request and test system safety dynamically.</p>
+                </div>
+            </div>
+
+            <div class="request-row">
+                <div class="field-group">
+                    <label class="field-label" for="req-process">Process</label>
+                    <select id="req-process" class="field-input field-select" aria-label="Target process"></select>
+                </div>
+                <div class="field-group" style="flex:1">
+                    <label class="field-label">Request Vector</label>
+                    <div class="req-vector-row" id="req-vector"></div>
+                </div>
+                <div class="field-group" style="justify-content:flex-end">
+                    <button id="btn-request" class="btn btn-primary" aria-label="Submit resource request">
+                        <i class="fas fa-paper-plane"></i> Submit Request
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ──────────────────── STEP 4 — PERFORMANCE DASHBOARD ─── -->
+        <section class="glass-card hidden fade-in" id="section-dashboard">
+            <div class="section-header">
+                <span class="section-number">04</span>
+                <div>
+                    <h2 class="section-title">&#x1F4CA; System Performance Dashboard</h2>
+                    <p class="section-desc">Live metrics updated after every Safety Check run.</p>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+
+                <!-- Card 1: Resource Utilisation -->
+                <div class="dash-card" id="dash-utilisation">
+                    <div class="dash-card-icon" style="background:linear-gradient(135deg,#7c3aed,#2563eb)">
+                        <i class="fas fa-circle-half-stroke"></i>
+                    </div>
+                    <div class="dash-card-body">
+                        <span class="dash-card-label">Resource Utilisation</span>
+                        <div class="ring-wrap">
+                            <!-- SVG ring chart -->
+                            <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+                                <circle class="ring-track" cx="60" cy="60" r="50" />
+                                <circle class="ring-fill" id="ring-fill" cx="60" cy="60" r="50"
+                                    stroke-dasharray="0 314" />
+                            </svg>
+                            <span class="ring-pct" id="ring-pct">0%</span>
+                        </div>
+                        <p class="dash-card-sub" id="util-sub">Run Safety Check to compute.</p>
+                    </div>
+                </div>
+
+                <!-- Card 2: System Reliability -->
+                <div class="dash-card" id="dash-reliability">
+                    <div class="dash-card-icon" style="background:linear-gradient(135deg,#059669,#10b981)">
+                        <i class="fas fa-heart-pulse"></i>
+                    </div>
+                    <div class="dash-card-body">
+                        <span class="dash-card-label">System Reliability</span>
+                        <div class="reliability-badge" id="reliability-badge">
+                            <span class="badge-dot" id="reliability-dot"></span>
+                            <span class="badge-text" id="reliability-text">Unknown</span>
+                        </div>
+                        <p class="dash-card-sub" id="reliability-sub">Awaiting safety evaluation.</p>
+                    </div>
+                </div>
+
+                <!-- Card 3: Process Completion Rate -->
+                <div class="dash-card" id="dash-completion">
+                    <div class="dash-card-icon" style="background:linear-gradient(135deg,#db2777,#f43f5e)">
+                        <i class="fas fa-list-check"></i>
+                    </div>
+                    <div class="dash-card-body">
+                        <span class="dash-card-label">Process Completion Rate</span>
+                        <div class="completion-nums">
+                            <span class="completion-count" id="completion-count">0</span>
+                            <span class="completion-sep">/</span>
+                            <span class="completion-total" id="completion-total">0</span>
+                        </div>
+                        <div class="completion-bar-wrap">
+                            <div class="completion-bar-track">
+                                <div class="completion-bar-fill" id="completion-bar"></div>
+                            </div>
+                            <span class="completion-pct" id="completion-pct">0%</span>
+                        </div>
+                        <p class="dash-card-sub" id="completion-sub">processes completed in safe sequence.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ──────────────────── SYSTEM EXECUTION LOG ─────────── -->
+        <section class="terminal-card" id="section-log">
+            <div class="terminal-topbar">
+                <span class="terminal-dot dot-red"></span>
+                <span class="terminal-dot dot-yellow"></span>
+                <span class="terminal-dot dot-green"></span>
+                <span class="terminal-title">system_execution.log</span>
+                <button id="btn-clear-log" class="terminal-clear" aria-label="Clear log"><i
+                        class="fas fa-trash-can"></i> clear</button>
+            </div>
+            <div class="terminal-body" id="log-body">
+                <div class="log-line log-sys">$ bankers_sim --init<span class="blink-cursor">█</span></div>
+                <div class="log-line log-info">&gt; Simulator ready. Configure parameters to begin.</div>
+            </div>
+        </section>
+
+        <!-- ──────────────────── FOOTER ──────────────────────── -->
+        <footer class="app-footer">
+            <p>Deadlock Avoidance &middot; OS Lab &middot; Banker's Algorithm &middot;
+                <span id="footer-year"></span>
+            </p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
