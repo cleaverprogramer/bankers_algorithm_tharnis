@@ -60,6 +60,11 @@ document.addEventListener('DOMContentLoaded', () => {
     getEl('btn-step-next').addEventListener('click', stepNext);
     getEl('btn-step-close').addEventListener('click', stepStop);
 
+    // ── Exec trace close button ─────────────────────────────────
+    getEl('btn-close-trace').addEventListener('click', () => {
+        getEl('exec-trace-container').classList.add('hidden');
+    });
+
     // ── Utility ──────────────────────────────────────────────
     getEl('btn-dark-toggle').addEventListener('click', toggleTheme);
     getEl('btn-export-pdf').addEventListener('click', exportPDF);
@@ -129,6 +134,8 @@ function generateMatrices() {
     clearResultGlow();
     stepStop();
     resetDashboard(); // hide & zero-out dashboard on each fresh generation
+    getEl('exec-trace-container').classList.add('hidden'); // Hide trace cards
+    getEl('section-req-dashboard').classList.add('hidden'); // Hide request dashboard
 
     termLog('$ bankers_sim --generate', 'sys');
     termLog(`> Matrices initialised — Processes: ${N}, Resources: ${M}`, 'info');
@@ -335,7 +342,7 @@ function err(msg) {
  *  @param {number[]}   avail  - Available resources snapshot
  *  @param {number[][]} alloc  - Allocation matrix snapshot
  *  @param {number[][]} need   - Need matrix snapshot
- *  @returns {{ safe: boolean, seq: number[] }}
+ *  @returns {{ safe: boolean, seq: number[], traceSteps: object[] }}
  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━*/
 
 function safetyAlgorithm(avail, alloc, need, collectTrace = false) {
@@ -375,6 +382,7 @@ function safetyAlgorithm(avail, alloc, need, collectTrace = false) {
                         alloc: [...alloc[i]],
                         workAfter: [...work],
                         seq: [...seq],
+                        finish: [...finish], // Snapshot finish array
                     });
                 }
                 // Restart inner scan to recheck previously skipped processes
@@ -385,6 +393,7 @@ function safetyAlgorithm(avail, alloc, need, collectTrace = false) {
                     process: i,
                     need: [...need[i]],
                     work: [...work],
+                    finish: [...finish], // Snapshot finish array
                 });
             }
         }
@@ -401,13 +410,15 @@ function safetyAlgorithm(avail, alloc, need, collectTrace = false) {
 
 function runSafetyUI() {
     stepStop();                        // end any active step visualization
+    getEl('exec-trace-container').classList.add('hidden'); // Hide previous trace cards
+    getEl('section-req-dashboard').classList.add('hidden'); // Hide request dashboard
     if (!readState()) return;
 
     termLog('$ bankers_sim --safety-check', 'sys');
     termLog('> Reading system state...', 'info');
     termLog(`> Available : [${availVector.join(', ')}]`, 'info');
 
-    // Run algorithm with trace collection enabled (for PDF export)
+    // Run algorithm with trace collection enabled (for PDF export + step cards)
     const { safe, seq, traceSteps } = safetyAlgorithm(availVector, allocMatrix, needMatrix, true);
 
     if (safe) {
@@ -441,8 +452,13 @@ function runSafetyUI() {
         completePct: N > 0 ? Math.round((seq.length / N) * 100) : 0,
     };
 
-    // ── AUTO-SCROLL: dashboard first, then terminal below it ──
-    getEl('section-dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // ── Render Execution Trace Step Cards ─────────────────────────
+    renderExecTrace(safe, seq, traceSteps);
+
+    // ── AUTO-SCROLL: scroll to the first Step Card ─────────────────
+    setTimeout(() => {
+        getEl('section-log').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
 }
 
 
@@ -465,6 +481,7 @@ function runSafetyUI() {
 
 function runRequestUI() {
     stepStop();
+    getEl('exec-trace-container').classList.add('hidden'); // Hide previous trace cards
     if (!readState()) return;
 
     const pid = parseInt(getEl('req-process').value);
@@ -480,27 +497,67 @@ function runRequestUI() {
     termLog(`> Process : P${pid}`, 'info');
     termLog(`> Request : [${req.join(', ')}]`, 'info');
 
-    // ── Check 1: Request ≤ Need ───────────────────────────────
+    // ── Show Request Dashboard ────────────────────────────────────
+    const dash = getEl('section-req-dashboard');
+    dash.classList.remove('hidden');
+    const checksEl = getEl('req-validation-checks');
+    checksEl.innerHTML = '';
+    getEl('req-sim-table-wrap').classList.add('hidden');
+    const decisionEl = getEl('req-decision');
+    decisionEl.classList.add('hidden');
+    decisionEl.innerHTML = '';
+
+    // Helper to add a check row
+    const addCheck = (label, passed, detail) => {
+        const row = document.createElement('div');
+        row.className = `req-check-row ${passed ? 'check-pass' : 'check-fail'}`;
+        row.innerHTML = `
+            <span class="check-icon">${passed ? '✅' : '❌'}</span>
+            <span class="check-label">${label}</span>
+            <span class="check-detail">${detail}</span>
+        `;
+        checksEl.appendChild(row);
+        return passed;
+    };
+
+    // ── Check 1: Request ≤ Need ────────────────────────────────
+    let needViolation = false;
     for (let j = 0; j < M; j++) {
-        if (req[j] > needMatrix[pid][j]) {
-            termLog(`> ✖ Request exceeds maximum claim for R${j}. DENIED.`, 'err');
-            showToast(`P${pid}: Request exceeds its declared Max — denied.`, 'error');
-            setResultGlow(false);
-            return;
-        }
+        if (req[j] > needMatrix[pid][j]) { needViolation = true; break; }
+    }
+    addCheck(
+        'Request ≤ Need[P' + pid + ']',
+        !needViolation,
+        `[${req.join(', ')}] ≤ [${needMatrix[pid].join(', ')}] ?`
+    );
+
+    if (needViolation) {
+        termLog(`> ✖ Request exceeds maximum claim. DENIED.`, 'err');
+        showToast(`P${pid}: Request exceeds its declared Max — denied.`, 'error');
+        setResultGlow(false);
+        setTimeout(() => getEl('section-req-dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+        return;
     }
 
-    // ── Check 2: Request ≤ Available ─────────────────────────
+    // ── Check 2: Request ≤ Available ───────────────────────────
+    let availViolation = false;
     for (let j = 0; j < M; j++) {
-        if (req[j] > availVector[j]) {
-            termLog(`> ⚠ Insufficient Available resources for R${j}. P${pid} must WAIT.`, 'warn');
-            showToast(`P${pid}: Resources unavailable — process must wait.`, 'warning');
-            return;
-        }
+        if (req[j] > availVector[j]) { availViolation = true; break; }
+    }
+    addCheck(
+        'Request ≤ Available',
+        !availViolation,
+        `[${req.join(', ')}] ≤ [${availVector.join(', ')}] ?`
+    );
+
+    if (availViolation) {
+        termLog(`> ⚠ Insufficient Available resources. P${pid} must WAIT.`, 'warn');
+        showToast(`P${pid}: Resources unavailable — process must wait.`, 'warning');
+        setTimeout(() => getEl('section-req-dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+        return;
     }
 
-    // ── Step 3: Simulate allocation ───────────────────────────
-    // Deep-copy all matrices to avoid mutating live state before safety check
+    // ── Step 3: Simulate allocation ─────────────────────────────
     const simAvail = [...availVector];
     const simAlloc = allocMatrix.map(r => [...r]);
     const simNeed = needMatrix.map(r => [...r]);
@@ -513,8 +570,15 @@ function runRequestUI() {
 
     termLog('> Simulating allocation... running safety check...', 'step');
 
-    // ── Step 4: Safety Check on simulated state ───────────────
+    // ── Show What-If Simulation Snapshot Table ──────────────────
+    buildSimSnapshotTable(simAvail, simAlloc, simNeed, pid, req);
+    getEl('req-sim-table-wrap').classList.remove('hidden');
+
+    // ── Step 4: Safety Check on simulated state ────────────────
     const { safe, seq } = safetyAlgorithm(simAvail, simAlloc, simNeed);
+
+    const decEl = getEl('req-decision');
+    decEl.classList.remove('hidden');
 
     if (safe) {
         const seqStr = seq.map(i => `P${i}`).join(' → ');
@@ -523,20 +587,40 @@ function runRequestUI() {
         showToast(`Request for P${pid} granted safely!`, 'success');
         setResultGlow(true);
 
-        // ── Apply allocation to live DOM ──────────────────────
+        decEl.innerHTML = `
+            <div class="req-decision-banner granted">
+                <i class="fas fa-circle-check"></i>
+                <div>
+                    <strong>✅ Request Safely Granted</strong>
+                    <p>New safe sequence: <code>${seqStr}</code></p>
+                </div>
+            </div>
+        `;
+
+        // ── Apply allocation to live DOM ────────────────────────
         for (let j = 0; j < M; j++) {
             getEl(`avail-0-${j}`).value = simAvail[j];
             getEl(`alloc-${pid}-${j}`).value = simAlloc[pid][j];
         }
-        computeAllNeed(); // cascade Need matrix
+        computeAllNeed();
     } else {
         termLog(`> ✖ Request DENIED — allocation would cause UNSAFE state.`, 'err');
         showToast(`Request for P${pid} denied — deadlock risk!`, 'error');
         setResultGlow(false);
+
+        decEl.innerHTML = `
+            <div class="req-decision-banner denied">
+                <i class="fas fa-skull-crossbones"></i>
+                <div>
+                    <strong>❌ Request Denied: System would enter Deadlock</strong>
+                    <p>Simulation rolled back. State unchanged.</p>
+                </div>
+            </div>
+        `;
     }
 
-    // Auto-scroll to log
-    getEl('section-log').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Auto-scroll to request dashboard
+    setTimeout(() => getEl('section-req-dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
 }
 
 
@@ -668,6 +752,285 @@ function syncStepUI(statusMsg, statusClass = '') {
 }
 
 
+/* ━━━━━━━━━━━━━━━━━  EXECUTION TRACE STEP CARDS  ━━━━━━━━━━━━━━
+ *
+ *  renderExecTrace(safe, seq, traceSteps)
+ *  Generates a vertically-stacked series of "Step Cards" inside
+ *  #exec-step-cards that visually trace the Safety Algorithm.
+ *
+ *  Card types:
+ *  1. Initialization Card — Work = Available, Finish = [false…]
+ *  2. Execute Card (green header) — Need ≤ Work, update Work
+ *  3. Wait Card (amber header) — Need > Work, process must wait
+ *  4. Final Outcome Card — Safe banner with sequence or Unsafe
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━*/
+
+function renderExecTrace(safe, seq, traceSteps) {
+    const container = getEl('exec-trace-container');
+    const cardsEl = getEl('exec-step-cards');
+    cardsEl.innerHTML = '';
+
+    // ── Card 1: Initialization ────────────────────────────────
+    const initCard = document.createElement('div');
+    initCard.className = 'step-card step-card-init';
+    initCard.innerHTML = `
+        <div class="step-card-header">
+            <span class="step-num">Step 1</span>
+            <span class="step-tag tag-init">⚙ Initialization</span>
+        </div>
+        <div class="step-card-body">
+            <div class="step-param-row">
+                <span class="step-param-lbl">n (processes)</span>
+                <span class="step-param-val">${N}</span>
+            </div>
+            <div class="step-param-row">
+                <span class="step-param-lbl">m (resource types)</span>
+                <span class="step-param-val">${M}</span>
+            </div>
+            <div class="step-param-row">
+                <span class="step-param-lbl">Work = Available</span>
+                <span class="step-param-val vec-blue">[${availVector.join(', ')}]</span>
+            </div>
+            <div class="step-finish-wrap">
+                <span class="step-param-lbl" style="display:block;margin-bottom:8px;">Finish Table</span>
+                ${buildFinishTable(new Array(N).fill(false))}
+            </div>
+        </div>
+    `;
+    cardsEl.appendChild(initCard);
+
+    // ── Cards 2…n+1: Process Analysis ────────────────────────
+    if (traceSteps && traceSteps.length > 0) {
+        traceSteps.forEach((s, idx) => {
+            const card = document.createElement('div');
+            const isSafe = s.type === 'execute';
+            card.className = `step-card ${isSafe ? 'step-card-exec' : 'step-card-wait'}`;
+            card.style.animationDelay = `${(idx + 1) * 0.07}s`;
+
+            if (isSafe) {
+                card.innerHTML = `
+                    <div class="step-card-header">
+                        <span class="step-num">Step ${idx + 2}</span>
+                        <span class="step-tag tag-exec">✔ P${s.process} — Execute</span>
+                    </div>
+                    <div class="step-card-body">
+                        <div class="step-compare">
+                            <span class="vec-label">Need[P${s.process}]</span>
+                            <span class="vec-val vec-pink">[${s.need.join(', ')}]</span>
+                            <span class="vec-op">≤</span>
+                            <span class="vec-label">Work</span>
+                            <span class="vec-val vec-blue">[${s.workBefore.join(', ')}]</span>
+                            <span class="vec-check check-yes">✓ Feasible</span>
+                        </div>
+                        <div class="step-work-update">
+                            <span class="work-update-lbl">Work Update</span>
+                            <span class="work-expr">
+                                [${s.workBefore.join(', ')}]
+                                <span class="work-plus">+</span>
+                                Alloc[P${s.process}]([${s.alloc.join(', ')}])
+                                <span class="work-arrow">→</span>
+                                <span class="vec-green">[${s.workAfter.join(', ')}]</span>
+                            </span>
+                        </div>
+                        <div class="step-finish-wrap">
+                            <span class="step-param-lbl" style="display:block;margin-bottom:8px;">Finish [P${s.process}] → <strong class="clr-green">true</strong></span>
+                            ${buildFinishTable(s.finish)}
+                        </div>
+                        <div class="step-seq-sofar">
+                            <span class="step-param-lbl">Sequence so far</span>
+                            <span class="seq-chain">${s.seq.map(p => `<span class="seq-node">P${p}</span>`).join('<span class="seq-arrow">→</span>')}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                card.innerHTML = `
+                    <div class="step-card-header">
+                        <span class="step-num">Step ${idx + 2}</span>
+                        <span class="step-tag tag-wait">⚠ P${s.process} — Must Wait</span>
+                    </div>
+                    <div class="step-card-body">
+                        <div class="step-compare">
+                            <span class="vec-label">Need[P${s.process}]</span>
+                            <span class="vec-val vec-pink">[${s.need.join(', ')}]</span>
+                            <span class="vec-op op-gt">&gt;</span>
+                            <span class="vec-label">Work</span>
+                            <span class="vec-val vec-blue">[${s.work.join(', ')}]</span>
+                            <span class="vec-check check-no">✗ Insufficient</span>
+                        </div>
+                        <p class="wait-note">⚠️ P${s.process} must wait — insufficient resources available.</p>
+                    </div>
+                `;
+            }
+            cardsEl.appendChild(card);
+        });
+    }
+
+    // ── Final Outcome Card ────────────────────────────────────
+    const finalCard = document.createElement('div');
+    finalCard.className = `step-card ${safe ? 'step-card-safe-final' : 'step-card-unsafe-final'}`;
+    finalCard.style.animationDelay = `${(traceSteps.length + 1) * 0.07}s`;
+
+    if (safe) {
+        const seqStr = seq.map(p => `<span class="seq-node seq-node-lg">P${p}</span>`).join('<span class="seq-arrow">→</span>');
+        finalCard.innerHTML = `
+            <div class="step-card-header">
+                <span class="step-num">Final</span>
+                <span class="step-tag tag-safe">✅ System is in a SAFE STATE</span>
+            </div>
+            <div class="step-card-body">
+                <div class="safe-state-banner">
+                    <div class="safe-icon-wrap"><i class="fas fa-circle-check"></i></div>
+                    <div>
+                        <div class="safe-title">Safe State Confirmed</div>
+                        <div class="safe-subtitle">All ${N} processes can complete. No deadlock possible.</div>
+                    </div>
+                </div>
+                <div class="final-seq-wrap">
+                    <span class="step-param-lbl">Safe Sequence</span>
+                    <div class="seq-chain seq-chain-final">${seqStr}</div>
+                </div>
+            </div>
+        `;
+    } else {
+        finalCard.innerHTML = `
+            <div class="step-card-header">
+                <span class="step-num">Final</span>
+                <span class="step-tag tag-unsafe">❌ System is in an UNSAFE STATE</span>
+            </div>
+            <div class="step-card-body">
+                <div class="unsafe-state-banner">
+                    <div class="unsafe-icon-wrap"><i class="fas fa-skull-crossbones"></i></div>
+                    <div>
+                        <div class="unsafe-title">Deadlock Risk Detected</div>
+                        <div class="unsafe-subtitle">Only ${seq.length} of ${N} processes could be ordered safely.</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    cardsEl.appendChild(finalCard);
+
+    // Show the trace container
+    container.classList.remove('hidden');
+}
+
+/**
+ * Builds a small Finish status table (P0…Pn-1 → true/false).
+ * @param {boolean[]} finishArr  - current finish state
+ * @returns {string}  HTML string
+ */
+function buildFinishTable(finishArr) {
+    const headers = finishArr.map((_, i) => `<th>P${i}</th>`).join('');
+    const cells = finishArr.map(v =>
+        `<td class="${v ? 'finish-true' : 'finish-false'}">${v ? 'true' : 'false'}</td>`
+    ).join('');
+    return `
+        <table class="finish-table">
+            <thead><tr>${headers}</tr></thead>
+            <tbody><tr>${cells}</tr></tbody>
+        </table>
+    `;
+}
+
+/**
+ * Builds the What-If Simulation Snapshot table showing modified
+ * rows/cells highlighted in cyan.
+ * @param {number[]}   simAvail  - Available after request
+ * @param {number[][]} simAlloc  - Allocation after request
+ * @param {number[][]} simNeed   - Need after request
+ * @param {number}     pid       - process index that made request
+ * @param {number[]}   req       - request vector
+ */
+function buildSimSnapshotTable(simAvail, simAlloc, simNeed, pid, req) {
+    const wrap = getEl('req-sim-table');
+    wrap.innerHTML = '';
+
+    // Build a combined table: columns = P | R0..Rm-1 (Alloc) | R0..Rm-1 (Need) | R0..Rm-1 (Avail)
+    const tbl = document.createElement('table');
+    tbl.className = 'data-table sim-table';
+
+    // Header row
+    const thead = tbl.createTHead();
+    const hRow = thead.insertRow();
+    const addTh = (txt, colspan = 1, cls = '') => {
+        const th = document.createElement('th');
+        th.textContent = txt;
+        if (colspan > 1) th.colSpan = colspan;
+        if (cls) th.className = cls;
+        hRow.appendChild(th);
+    };
+    addTh('');
+    addTh('Allocation', M, 'sim-col-group');
+    addTh('Need', M, 'sim-col-group');
+    addTh('Available', M, 'sim-col-group sim-col-avail-hdr');
+
+    // Sub-header
+    const hRow2 = thead.insertRow();
+    const addTh2 = (txt, cls = '') => {
+        const th = document.createElement('th');
+        th.textContent = txt;
+        if (cls) th.className = cls;
+        hRow2.appendChild(th);
+    };
+    addTh2('');
+    for (let j = 0; j < M; j++) addTh2(`R${j}`);
+    for (let j = 0; j < M; j++) addTh2(`R${j}`);
+    for (let j = 0; j < M; j++) addTh2(`R${j}`, 'sim-avail-sub');
+
+    // Data rows
+    const tbody = tbl.createTBody();
+    for (let i = 0; i < N; i++) {
+        const tr = tbody.insertRow();
+
+        // Process label
+        const lbl = tr.insertCell();
+        lbl.className = 'proc-label';
+        lbl.textContent = `P${i}`;
+
+        // Allocation cells
+        for (let j = 0; j < M; j++) {
+            const td = tr.insertCell();
+            td.textContent = simAlloc[i][j];
+            // Highlight the modified cell (pid row, where req[j]>0)
+            if (i === pid && req[j] > 0) {
+                td.className = 'sim-modified-cell';
+                td.title = `+${req[j]} (request applied)`;
+            }
+        }
+
+        // Need cells
+        for (let j = 0; j < M; j++) {
+            const td = tr.insertCell();
+            td.textContent = simNeed[i][j];
+            if (i === pid && req[j] > 0) {
+                td.className = 'sim-modified-cell';
+                td.title = `-${req[j]} (request applied)`;
+            }
+        }
+
+        // Available (only meaningful on first row; show on all for alignment)
+        for (let j = 0; j < M; j++) {
+            const td = tr.insertCell();
+            if (i === 0) {
+                td.textContent = simAvail[j];
+                if (req[j] > 0) {
+                    td.className = 'sim-modified-cell sim-avail-cell';
+                    td.title = `-${req[j]} (request applied)`;
+                } else {
+                    td.className = 'sim-avail-cell';
+                }
+            } else {
+                td.textContent = '—';
+                td.className = 'sim-avail-cell sim-avail-empty';
+            }
+        }
+    }
+
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+}
+
+
 /* ━━━━━━━━━━━━━━━━━  RANDOM DATA FILLER  ━━━━━━━━━━━━━━━━━━━━━━
  *  Generates valid random matrices:
  *    Max[i][j]   = random in [1, 9]
@@ -720,6 +1083,8 @@ function resetAll() {
 
     getEl('section-matrices').classList.add('hidden');
     getEl('section-request').classList.add('hidden');
+    getEl('exec-trace-container').classList.add('hidden');
+    getEl('section-req-dashboard').classList.add('hidden');
 
     clearResultGlow();
     removeResultBanner();
@@ -1063,7 +1428,7 @@ function buildPdfTrace(res) {
                 </div>`;
             } else if (s.type === 'wait') {
                 panels += `
-                <div class="pdf-trace-panel pdf-trace-wait">
+                  <div class="pdf-trace-panel pdf-trace-wait">
                   <span class="pdf-trace-hdr">&#x23F3; Step ${idx + 1} — P${s.process} must wait</span>
                   Need[P${s.process}] = [${s.need.join(', ')}] &gt; Work = [${s.work.join(', ')}] — insufficient resources.
                 </div>`;

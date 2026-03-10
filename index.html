@@ -191,6 +191,24 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Resource Request Dashboard (What-If + Decision) -->
+            <div id="section-req-dashboard" class="req-dashboard hidden">
+                <div class="req-dash-header">
+                    <i class="fas fa-flask"></i>
+                    <span>Request Controller &amp; What-If Simulation</span>
+                </div>
+                <!-- Validation checks -->
+                <div id="req-validation-checks" class="req-checks"></div>
+                <!-- Simulation Snapshot Table -->
+                <div id="req-sim-table-wrap" class="hidden">
+                    <div class="req-sim-title"><i class="fas fa-table"></i> Simulation Snapshot <span
+                            class="req-sim-badge">WHAT-IF</span></div>
+                    <div class="table-scroll" id="req-sim-table"></div>
+                </div>
+                <!-- Decision Output -->
+                <div id="req-decision" class="hidden"></div>
+            </div>
         </section>
 
         <!-- ──────────────────── STEP 4 — PERFORMANCE DASHBOARD ─── -->
@@ -279,6 +297,16 @@
                 <div class="log-line log-sys">$ bankers_sim --init<span class="blink-cursor">█</span></div>
                 <div class="log-line log-info">&gt; Simulator ready. Configure parameters to begin.</div>
             </div>
+            <!-- Step Cards Container (Safety Algorithm Execution Trace) -->
+            <div id="exec-trace-container" class="exec-trace-container hidden">
+                <div class="exec-trace-header">
+                    <i class="fas fa-code-branch"></i>
+                    <span>Safety Algorithm — Execution Trace</span>
+                    <button id="btn-close-trace" class="terminal-clear" aria-label="Close trace"><i
+                            class="fas fa-xmark"></i> close</button>
+                </div>
+                <div id="exec-step-cards" class="exec-step-cards"></div>
+            </div>
         </section>
 
         <!-- ──────────────────── FOOTER ──────────────────────── -->
@@ -292,4 +320,5 @@
     <script src="script.js"></script>
 </body>
 
-</html>
+</html>+65
+32510.

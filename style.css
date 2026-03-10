@@ -1796,3 +1796,851 @@ input[type="number"] {
         color: #7c3aed !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PROGRAM EXECUTION DASHBOARD — Execution Trace Step Cards
+   Terminal-style container with dark background + neon accents.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Exec Trace Container (lives inside terminal-card) ────────── */
+.exec-trace-container {
+    border-top: 1px solid rgba(57, 255, 20, 0.18);
+    margin-top: 0;
+    padding: 20px 22px 24px;
+    background: rgba(0, 0, 0, 0.30);
+}
+
+.exec-trace-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.80rem;
+    font-weight: 700;
+    color: var(--clr-cyan);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.exec-trace-header>span {
+    flex: 1;
+}
+
+/* ── Step Cards Grid ──────────────────────────────────────────── */
+.exec-step-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ── Base Step Card ───────────────────────────────────────────── */
+.step-card {
+    border-radius: var(--radius-md);
+    border: 1px solid;
+    overflow: hidden;
+    animation: fadeSlideIn 0.40s var(--ease) both;
+    transition: box-shadow var(--dur) var(--ease);
+}
+
+.step-card:hover {
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.40);
+}
+
+/* ── Step Card: Initialization (slate/blue) ───────────────────── */
+.step-card-init {
+    border-color: rgba(100, 116, 139, 0.45);
+    background: rgba(15, 23, 42, 0.70);
+}
+
+.step-card-init .step-card-header {
+    background: linear-gradient(90deg, rgba(100, 116, 139, 0.35), rgba(51, 65, 85, 0.25));
+    border-bottom: 1px solid rgba(100, 116, 139, 0.30);
+}
+
+/* ── Step Card: Execute (green) ───────────────────────────────── */
+.step-card-exec {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(4, 20, 12, 0.70);
+}
+
+.step-card-exec .step-card-header {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.15));
+    border-bottom: 1px solid rgba(16, 185, 129, 0.30);
+}
+
+/* ── Step Card: Wait (amber) ──────────────────────────────────── */
+.step-card-wait {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: rgba(20, 15, 4, 0.70);
+}
+
+.step-card-wait .step-card-header {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.15));
+    border-bottom: 1px solid rgba(245, 158, 11, 0.30);
+}
+
+/* ── Step Card: Safe Final (green glow) ───────────────────────── */
+.step-card-safe-final {
+    border-color: rgba(16, 185, 129, 0.70);
+    background: rgba(4, 20, 12, 0.80);
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.18), 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+.step-card-safe-final .step-card-header {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.40), rgba(5, 150, 105, 0.25));
+    border-bottom: 1px solid rgba(16, 185, 129, 0.45);
+}
+
+/* ── Step Card: Unsafe Final (red glow) ───────────────────────── */
+.step-card-unsafe-final {
+    border-color: rgba(239, 68, 68, 0.70);
+    background: rgba(20, 4, 4, 0.80);
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.15), 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+.step-card-unsafe-final .step-card-header {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.35), rgba(185, 28, 28, 0.20));
+    border-bottom: 1px solid rgba(239, 68, 68, 0.40);
+}
+
+/* ── Step Card Header ─────────────────────────────────────────── */
+.step-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+}
+
+.step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.70rem;
+    font-weight: 700;
+    color: rgba(241, 245, 249, 0.40);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.step-tag {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.tag-init {
+    background: rgba(148, 163, 184, 0.20);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.30);
+}
+
+.tag-exec {
+    background: rgba(16, 185, 129, 0.20);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.tag-wait {
+    background: rgba(245, 158, 11, 0.20);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.tag-safe {
+    background: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.50);
+    font-size: 0.90rem;
+}
+
+.tag-unsafe {
+    background: rgba(239, 68, 68, 0.22);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    font-size: 0.90rem;
+}
+
+/* ── Step Card Body ───────────────────────────────────────────── */
+.step-card-body {
+    padding: 14px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ── Param Rows ──────────────────────────────────────────────── */
+.step-param-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.83rem;
+}
+
+.step-param-lbl {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: rgba(241, 245, 249, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.step-param-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ── Vector colours ──────────────────────────────────────────── */
+.vec-blue {
+    color: #60a5fa;
+}
+
+.vec-pink {
+    color: #f9a8d4;
+}
+
+.vec-green {
+    color: #6ee7b7;
+}
+
+.clr-green {
+    color: var(--clr-green);
+}
+
+/* ── Vector Comparison Row ───────────────────────────────────── */
+.step-compare {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+}
+
+.vec-label {
+    font-size: 0.72rem;
+    color: rgba(241, 245, 249, 0.50);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+}
+
+.vec-val {
+    font-weight: 700;
+    font-size: 0.90rem;
+}
+
+.vec-op {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--clr-green);
+    padding: 0 4px;
+}
+
+.vec-op.op-gt {
+    color: var(--clr-red);
+}
+
+.vec-check {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: auto;
+}
+
+.check-yes {
+    background: rgba(16, 185, 129, 0.20);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.check-no {
+    background: rgba(239, 68, 68, 0.20);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+/* ── Work Update Row ────────────────────────────────────────── */
+.step-work-update {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.82rem;
+}
+
+.work-update-lbl {
+    font-size: 0.70rem;
+    font-weight: 700;
+    color: rgba(241, 245, 249, 0.40);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.work-expr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.work-plus {
+    color: var(--clr-cyan);
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+.work-arrow {
+    color: var(--clr-yellow);
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+/* ── Wait Note ───────────────────────────────────────────────── */
+.wait-note {
+    font-size: 0.82rem;
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.10);
+    border-left: 3px solid var(--clr-yellow);
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    margin: 0;
+}
+
+/* ── Finish Table ────────────────────────────────────────────── */
+.step-finish-wrap {
+    overflow-x: auto;
+}
+
+.finish-table {
+    border-collapse: collapse;
+    font-size: 0.80rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.finish-table th {
+    background: rgba(124, 58, 237, 0.20);
+    color: #a78bfa;
+    padding: 5px 10px;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+}
+
+.finish-table td {
+    padding: 5px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
+    font-weight: 700;
+    min-width: 44px;
+}
+
+.finish-true {
+    background: rgba(16, 185, 129, 0.18) !important;
+    color: #6ee7b7;
+}
+
+.finish-false {
+    background: rgba(239, 68, 68, 0.10) !important;
+    color: rgba(241, 245, 249, 0.45);
+}
+
+/* ── Sequence Chain ──────────────────────────────────────────── */
+.step-seq-sofar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.seq-chain {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.seq-node {
+    background: rgba(124, 58, 237, 0.25);
+    border: 1px solid rgba(124, 58, 237, 0.45);
+    color: #a78bfa;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.80rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+}
+
+.seq-arrow {
+    color: rgba(241, 245, 249, 0.35);
+    font-size: 0.90rem;
+    font-weight: 700;
+}
+
+/* Final sequence — larger nodes */
+.seq-node-lg {
+    font-size: 1.0rem;
+    padding: 5px 14px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.20);
+    border-color: rgba(16, 185, 129, 0.50);
+    color: #6ee7b7;
+}
+
+.seq-chain-final {
+    margin-top: 8px;
+    gap: 6px;
+}
+
+.final-seq-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* ── Safe/Unsafe Final Banners ───────────────────────────────── */
+.safe-state-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+}
+
+.safe-icon-wrap {
+    font-size: 2.4rem;
+    color: var(--clr-green);
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.70));
+}
+
+.safe-title {
+    font-size: 1.10rem;
+    font-weight: 800;
+    color: #6ee7b7;
+}
+
+.safe-subtitle {
+    font-size: 0.82rem;
+    color: rgba(110, 231, 183, 0.75);
+    margin-top: 3px;
+}
+
+.unsafe-state-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+}
+
+.unsafe-icon-wrap {
+    font-size: 2.4rem;
+    color: var(--clr-red);
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.70));
+}
+
+.unsafe-title {
+    font-size: 1.10rem;
+    font-weight: 800;
+    color: #fca5a5;
+}
+
+.unsafe-subtitle {
+    font-size: 0.82rem;
+    color: rgba(252, 165, 165, 0.75);
+    margin-top: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESOURCE REQUEST DASHBOARD
+═══════════════════════════════════════════════════════════════ */
+
+.req-dashboard {
+    margin-top: 22px;
+    border: 1px solid rgba(124, 58, 237, 0.30);
+    border-radius: var(--radius-md);
+    background: rgba(14, 8, 35, 0.60);
+    overflow: hidden;
+    animation: fadeSlideIn 0.35s var(--ease) both;
+}
+
+.req-dash-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: linear-gradient(90deg, rgba(124, 58, 237, 0.25), rgba(37, 99, 235, 0.15));
+    border-bottom: 1px solid rgba(124, 58, 237, 0.25);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #a78bfa;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.req-dash-header i {
+    color: var(--clr-cyan);
+}
+
+/* ── Validation Check Rows ───────────────────────────────────── */
+.req-checks {
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.req-check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.83rem;
+    animation: fadeSlideIn 0.30s var(--ease) both;
+}
+
+.check-pass {
+    background: rgba(16, 185, 129, 0.10);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #6ee7b7;
+}
+
+.check-fail {
+    background: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+}
+
+.check-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.check-label {
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.check-detail {
+    color: rgba(241, 245, 249, 0.55);
+    font-size: 0.78rem;
+    margin-left: auto;
+}
+
+/* ── Simulation Snapshot Table ───────────────────────────────── */
+.req-sim-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--clr-cyan);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.req-sim-badge {
+    background: rgba(6, 182, 212, 0.20);
+    border: 1px solid rgba(6, 182, 212, 0.40);
+    color: var(--clr-cyan);
+    font-size: 0.65rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+}
+
+/* Combined simulation snapshot table */
+.sim-table {
+    min-width: 100%;
+}
+
+.sim-table th.sim-col-group {
+    background: rgba(124, 58, 237, 0.25) !important;
+    color: #a78bfa !important;
+    border: 1px solid rgba(124, 58, 237, 0.30) !important;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.sim-table th.sim-col-avail-hdr {
+    background: rgba(16, 185, 129, 0.20) !important;
+    color: #6ee7b7 !important;
+    border-color: rgba(16, 185, 129, 0.30) !important;
+}
+
+.sim-table th.sim-avail-sub {
+    background: rgba(16, 185, 129, 0.10) !important;
+    color: rgba(110, 231, 183, 0.75) !important;
+}
+
+/* Modified cells — highlighted in cyan */
+.sim-modified-cell {
+    background: rgba(6, 182, 212, 0.22) !important;
+    color: #67e8f9 !important;
+    font-weight: 700;
+    border: 1px solid rgba(6, 182, 212, 0.55) !important;
+    position: relative;
+}
+
+.sim-modified-cell::after {
+    content: '●';
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    font-size: 0.45rem;
+    color: var(--clr-cyan);
+    opacity: 0.80;
+}
+
+.sim-avail-cell {
+    background: rgba(16, 185, 129, 0.08) !important;
+    color: #6ee7b7 !important;
+    font-weight: 600;
+}
+
+.sim-avail-empty {
+    color: rgba(241, 245, 249, 0.20) !important;
+    font-size: 0.75rem;
+}
+
+/* ── Decision Banners ────────────────────────────────────────── */
+#req-decision {
+    padding: 0 18px 18px;
+    animation: fadeSlideIn 0.35s var(--ease) both;
+}
+
+.req-decision-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid;
+    font-size: 0.90rem;
+}
+
+.req-decision-banner.granted {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #6ee7b7;
+}
+
+.req-decision-banner.denied {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+}
+
+.req-decision-banner i {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.req-decision-banner.granted i {
+    color: var(--clr-green);
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.70));
+}
+
+.req-decision-banner.denied i {
+    color: var(--clr-red);
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.70));
+}
+
+.req-decision-banner strong {
+    display: block;
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.req-decision-banner p {
+    font-size: 0.82rem;
+    margin: 0;
+    opacity: 0.80;
+}
+
+.req-decision-banner code {
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+}
+
+/* ─────────────────── Light Mode overrides ───────────────────── */
+html.light .step-card-init {
+    background: rgba(241, 245, 249, 0.90);
+}
+
+html.light .step-card-exec {
+    background: rgba(240, 253, 244, 0.90);
+}
+
+html.light .step-card-wait {
+    background: rgba(255, 251, 235, 0.90);
+}
+
+html.light .step-card-safe-final {
+    background: rgba(220, 252, 231, 0.90);
+}
+
+html.light .step-card-unsafe-final {
+    background: rgba(254, 226, 226, 0.90);
+}
+
+html.light .step-card-init .step-card-header {
+    background: rgba(148, 163, 184, 0.20);
+}
+
+html.light .step-card-exec .step-card-header {
+    background: rgba(16, 185, 129, 0.15);
+}
+
+html.light .step-card-wait .step-card-header {
+    background: rgba(245, 158, 11, 0.15);
+}
+
+html.light .step-compare {
+    background: rgba(255, 255, 255, 0.80);
+    border-color: rgba(0, 0, 0, 0.10);
+}
+
+html.light .wait-note {
+    color: #92400e;
+    background: rgba(245, 158, 11, 0.12);
+}
+
+html.light .finish-table th {
+    background: rgba(124, 58, 237, 0.12);
+    color: #5b21b6;
+    border-color: rgba(124, 58, 237, 0.20);
+}
+
+html.light .finish-table td {
+    border-color: rgba(0, 0, 0, 0.10);
+}
+
+html.light .finish-true {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #065f46;
+}
+
+html.light .finish-false {
+    background: rgba(239, 68, 68, 0.08) !important;
+    color: #6b7280;
+}
+
+html.light .seq-node {
+    background: rgba(124, 58, 237, 0.12);
+    color: #5b21b6;
+    border-color: rgba(124, 58, 237, 0.30);
+}
+
+html.light .seq-node-lg {
+    background: rgba(16, 185, 129, 0.15);
+    color: #065f46;
+    border-color: rgba(16, 185, 129, 0.40);
+}
+
+html.light .req-dashboard {
+    background: rgba(245, 243, 255, 0.90);
+    border-color: rgba(124, 58, 237, 0.25);
+}
+
+html.light .req-dash-header {
+    background: rgba(124, 58, 237, 0.10);
+}
+
+html.light .check-pass {
+    background: rgba(16, 185, 129, 0.10);
+    color: #065f46;
+}
+
+html.light .check-fail {
+    background: rgba(239, 68, 68, 0.08);
+    color: #7f1d1d;
+}
+
+html.light .check-detail {
+    color: #6b7280;
+}
+
+html.light .sim-modified-cell {
+    background: rgba(6, 182, 212, 0.15) !important;
+    color: #0e7490 !important;
+}
+
+html.light .sim-avail-cell {
+    background: rgba(16, 185, 129, 0.10) !important;
+    color: #065f46 !important;
+}
+
+html.light .req-decision-banner.granted {
+    background: rgba(16, 185, 129, 0.12);
+    color: #065f46;
+}
+
+html.light .req-decision-banner.denied {
+    background: rgba(239, 68, 68, 0.08);
+    color: #7f1d1d;
+}
+
+html.light .safe-state-banner {
+    background: rgba(16, 185, 129, 0.10);
+}
+
+html.light .safe-title {
+    color: #065f46;
+}
+
+html.light .safe-subtitle {
+    color: #047857;
+}
+
+html.light .unsafe-state-banner {
+    background: rgba(239, 68, 68, 0.08);
+}
+
+html.light .unsafe-title {
+    color: #7f1d1d;
+}
+
+html.light .unsafe-subtitle {
+    color: #991b1b;
+}
+
+html.light .exec-trace-container {
+    background: rgba(255, 255, 255, 0.60);
+    border-color: rgba(16, 185, 129, 0.20);
+}
+
+html.light .exec-trace-header {
+    color: #0e7490;
+}
